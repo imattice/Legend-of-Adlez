@@ -33,6 +33,9 @@ TopDownGame.Game.prototype = {
             this.player = this.game.add.sprite(result[0].x, result[0].y, 'player');
             this.game.physics.arcade.enable(this.player);
             this.player.health = 10;
+            for (i = 1; i <= 10; i++) {
+                $('#game-frame').append('<img src="/assets/images/heart.png" height="72em" width="72em">');
+            }
 
         this.blockedLayer = this.map.createLayer('CANTGOHERE');
         this.foregroundLayer = this.map.createLayer('topLayer1');
@@ -62,13 +65,6 @@ TopDownGame.Game.prototype = {
 
 
 //PLAYER
-    //player healthbar
-        this.text = this.game.add.text(this.game.camera.x, this.game.camera.y, "Health: " + this.player.health,
-            {
-              font: "24px Arial",
-              fill: "#ff0044",
-              align: "center"
-            });
 
     //the camera follows player
         this.game.camera.follow(this.player);
@@ -157,6 +153,18 @@ TopDownGame.Game.prototype = {
             });
         },
 
+        //places sprite in designated area
+            findObjectsByType: function(type, map, layer) {
+                var result = new Array();
+                    map.objects[layer].forEach(function(element) {
+                        if(element.properties.type === type) {
+                            element.y -= map.tileHeight;
+                            element.id = result.length + 1;
+                            result.push(element);
+                        }
+                    });
+                return result;
+            },
 
 //BULLETS
     //player bullets
@@ -256,6 +264,7 @@ TopDownGame.Game.prototype = {
                 }
             } else if (enemy.key == "nonag") {
                 enemy.health -=1;
+                console.log(enemy.health);
                 this.adlezBullet.kill();
                 if(enemy.health <= 0){
                     enemy.kill();
@@ -277,10 +286,12 @@ TopDownGame.Game.prototype = {
             this.player.body.velocity.y = this.ybounceVelocity;
             this.player.body.velocity.x = this.xbounceVelocity;
                 if (enemy.key == "nonagBullet") {
-                  player.health -=1
+                  player.health -=1;
+                  $('img:last-child').remove();
                 }
                 if (enemy.key == "goon") {
                   player.health -=1;
+                  $('img:last-child').remove();
                 }
                 if(player.health <=0) {
                   this.player.kill();
@@ -289,12 +300,6 @@ TopDownGame.Game.prototype = {
                   this.explosion.play('kaboom', 30, false, true);
                   this.sound.play('boom');
                 }
-            this.updateText();
-        },
-
-    //updates health upon hit
-        updateText: function() {
-            this.text.setText("Health:" + this.player.health);
         },
 
     //animation for death
@@ -304,35 +309,26 @@ TopDownGame.Game.prototype = {
         },
 
     //remove bullet if offscreen
-        resetAdlezBullet: function(bullet) {
-            this.adlezBullet.kill();
+        resetAdlezBullet: function() {
+          this.adlezBullet.kill();
         },
 
     //remove bullet if offscreen
-        resetNonagBullet: function(bullet) {
+        resetNonagBullet: function() {
             this.nonagBullet.kill();
         },
 
-    //find objects in a Tiled layer that containt a property called "type" equal to a certain value
-        findObjectsByType: function(type, map, layer) {
-            var result = new Array();
-                map.objects[layer].forEach(function(element) {
-                    if(element.properties.type === type) {
-                        element.y -= map.tileHeight;
-                        element.id = result.length + 1;
-                        result.push(element);
-                    }
-                });
-            return result;
+    //Remove Nonag's bullets i
+        updateNonagBullet: function() {
+            if (this.nonagBullet.y > this.nonag.y + 150) {
+              this.nonagBullet.kill();
+            }
         },
-
 
     update: function() {
         //player movement
         this.player.body.velocity.y = 0;
         this.player.body.velocity.x = 0;
-        this.text.x = this.game.camera.x;
-        this.text.y = this.game.camera.y;
 
         this.fireNonagBullet();
 
@@ -363,13 +359,16 @@ TopDownGame.Game.prototype = {
             this.player.animations.stop();
         }
 
+        this.updateNonagBullet;
 
         //collision
             this.game.physics.arcade.collide(this.player, this.blockedLayer);
+            this.game.physics.arcade.collide(this.nonagBullet, this.blockedLayer, this.resetNonagBullet, null, this);
+            this.game.physics.arcade.collide(this.adlezBullet, this.blockedLayer, this.resetAdlezBullet, null, this);
             this.game.physics.arcade.overlap(this.player, this.items, this.collect, null, this);
-            this.game.physics.arcade.overlap(this.adlezBullet, this.goon, this.goonKiller, null, this);
 
-        //HERE!
+        //Player interactions (magic, running into enemies, etc)
+            this.game.physics.arcade.overlap(this.adlezBullet, this.goon, this.goonKiller, null, this);
             this.game.physics.arcade.overlap(this.player, this.nonagBullet, this.adlezKiller, null, this);
             this.game.physics.arcade.overlap(this.adlezBullet, this.enemies.children, this.enemyKiller, null, this);
             this.game.physics.arcade.overlap(this.player, this.enemies.children, this.adlezKiller, null, this);
